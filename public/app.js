@@ -305,5 +305,7 @@ async function loadRequests() {
   });
 }
 
-socket.on("refresh", loadAll);
+if (socket && typeof socket.on === 'function') {
+    socket.on("refresh", loadAll);
+}
 init();
