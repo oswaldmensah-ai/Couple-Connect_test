@@ -331,11 +331,11 @@ app.patch("/api/plans/:id", auth, (req, res) => {
         UPDATE plans SET title=?, plan_date=?, plan_time=?, place=?, notes=?, completed=?
         WHERE id=?
     `).run(
-        String(req.body.title ?? plan.title).trim(),
-        req.body.plan_date ?? plan.plan_date,
-        req.body.plan_time ?? plan.plan_time,
-        String(req.body.place ?? plan.place).trim(),
-        String(req.body.notes ?? plan.notes).trim(),
+        String(req.body.title ? ? plan.title).trim(),
+        req.body.plan_date ? ? plan.plan_date,
+        req.body.plan_time ? ? plan.plan_time,
+        String(req.body.place ? ? plan.place).trim(),
+        String(req.body.notes ? ? plan.notes).trim(),
         req.body.completed ? 1 : 0,
         id
     );
@@ -360,4 +360,4 @@ io.on("connection", socket => {
     socket.on("ping-app", () => socket.emit("pong-app"));
 });
 
-server.listen(PORT, () => console.log(`Couple Connect running at http://localhost:${PORT}`));
+server.listen(PORT, '0.0.0.0', () => { console.log(`Couple Connect running on port ${PORT}`); });
