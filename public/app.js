@@ -66,8 +66,9 @@ function showApp() {
 }
 
 function updateWelcome() {
-    const partnerLabel = partner ? .preferred_name || partner ? .name || "";
-    const activeTab = document.querySelector('.tab.active') ? .dataset ? .tab || 'messages';
+    const partnerLabel = (partner && (partner.preferred_name || partner.name)) || "";
+    const activeEl = document.querySelector('.tab.active');
+    const activeTab = (activeEl && activeEl.dataset && activeEl.dataset.tab) || 'messages';
     const tabLabel = activeTab === 'messages' ? 'texting' : activeTab === 'plans' ? 'planning with' : 'reviewing requests with';
     $("#welcome").textContent = `${currentUser.name} · ${tabLabel} ${partnerLabel ? `(${partnerLabel})` : ''}`;
 }
