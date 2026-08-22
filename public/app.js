@@ -1,6 +1,12 @@
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
-const socket = io();
+let socket;
+try {
+    socket = (typeof io !== 'undefined') ? io() : null;
+} catch (e) {
+    console.error('Socket.IO client failed to initialize:', e);
+    socket = null;
+}
 
 let currentUser = null;
 let partner = null;
