@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A simple private messaging and planning site for two people.",
   "main": "server.js",
-  "scripts": { "start": "node server.js", "dev": "node server.js" },
+  "scripts": { "start": "node server.js", "dev": "node server.js", "postinstall": "npm rebuild better-sqlite3 --build-from-source" },
   "dependencies": {
     "better-sqlite3": "^11.10.0",
     "dotenv": "^16.6.1",
