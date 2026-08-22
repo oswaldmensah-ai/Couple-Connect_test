@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Couple Connect</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="loginView" class="center">
+        <div class="card login-card">
+            <div class="logo">♥</div>
+            <h1>Couple Connect_T</h1>
+            <p class="muted">A private little space for You and I.</p>
+            <form id="loginForm">
+                <label>Who are you?</label>
+                <select id="userId">
+          <option value="1">Oswald</option>
+          <option value="2">Jessica</option>
+        </select>
+                <label>Password</label>
+                <input id="password" type="password" required>
+                <button class="primary" type="submit">Enter our space</button>
+                <p id="loginError" class="error"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="appView" class="hidden">
+        <header>
+            <div>
+                <div class="brand">♥ Couple Connect</div>
+                <div id="welcome" class="muted"></div>
+            </div>
+            <button id="logoutBtn" class="ghost">Log out</button>
+        </header>
+
+        <main>
+            <nav class="tabs">
+                <button class="tab active" data-tab="messages">Messages</button>
+                <button class="tab" data-tab="plans">Our Plans</button>
+                <button class="tab" data-tab="requests">Photo Requests</button>
+            </nav>
+
+            <section id="messages" class="panel">
+                <div class="section-title">
+                    <div>
+                        <h2>Messages</h2>
+                        <p class="muted">Some messages can have a little unlock challenge.</p>
+                    </div>
+                </div>
+                <div id="messageList" class="message-list"></div>
+
+                <form id="messageForm" class="composer card">
+                    <textarea id="messageBody" rows="3" placeholder="Write something sweet..." required></textarea>
+                    <div class="grid2">
+                        <div>
+                            <label>How should this message unlock?</label>
+                            <select id="unlockMethod">
+                <option value="none">Show normally</option>
+                <option value="photo">Photo proof</option>
+                <option value="question">Answer a question</option>
+                <option value="either">Photo OR question</option>
+              </select>
+                        </div>
+                        <div id="questionFields" class="hidden">
+                            <label>Question</label>
+                            <input id="question" placeholder="What is our special place?">
+                            <label>Correct answer</label>
+                            <input id="answer" placeholder="Only your partner should know">
+                        </div>
+                    </div>
+                    <button class="primary" type="submit">Send message ♥</button>
+                    <p id="messageError" class="error"></p>
+                </form>
+            </section>
+
+            <section id="plans" class="panel hidden">
+                <div class="section-title">
+                    <div>
+                        <h2>Our Plans</h2>
+                        <p class="muted">Keep your dates and little adventures together.</p>
+                    </div>
+                </div>
+                <form id="planForm" class="card plan-form">
+                    <input id="planTitle" placeholder="Plan title e.g. Movie night" required>
+                    <div class="grid2">
+                        <input id="planDate" type="date">
+                        <input id="planTime" type="time">
+                    </div>
+                    <input id="planPlace" placeholder="Place">
+                    <textarea id="planNotes" rows="2" placeholder="Notes"></textarea>
+                    <button class="primary" type="submit">Save plan</button>
+                    <p id="planError" class="error"></p>
+                </form>
+                <div id="planList" class="plan-list"></div>
+            </section>
+
+            <section id="requests" class="panel hidden">
+                <div class="section-title">
+                    <div>
+                        <h2>Photo Requests</h2>
+                        <p class="muted">Review photos sent as proof for locked messages.</p>
+                    </div>
+                </div>
+                <div id="requestList"></div>
+            </section>
+        </main>
+    </div>
+
+    <template id="lockedTemplate">
+    <div class="locked-box">
+      <div class="lock">🔒</div>
+      <strong>Message locked</strong>
+      <p class="muted method-text"></p>
+      <div class="challenge"></div>
+    </div>
+  </template>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+</body>
+
+</html>
