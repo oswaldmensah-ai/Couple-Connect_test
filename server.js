@@ -27,6 +27,21 @@ try {
 } catch (e) {
     // ignore if column already exists
 }
+
+// Ensure `disappears_at` column exists for message disappearing timer
+try {
+    db.prepare("ALTER TABLE messages ADD COLUMN disappears_at TEXT").run();
+} catch (e) {
+    // ignore if column already exists
+}
+
+// Ensure `timer_duration` column exists to store the original timer setting
+try {
+    db.prepare("ALTER TABLE messages ADD COLUMN timer_duration INTEGER").run();
+} catch (e) {
+    // ignore if column already exists
+}
+
 db.pragma("journal_mode = WAL");
 db.pragma("journal_mode = WAL");
 
@@ -41,6 +56,8 @@ CREATE TABLE IF NOT EXISTS messages (
     answer_hash TEXT,
     unlocked INTEGER NOT NULL DEFAULT 0,
     seen INTEGER NOT NULL DEFAULT 0,
+    disappears_at TEXT,
+    timer_duration INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -144,6 +161,15 @@ function getRoleForUser(id) {
     return null;
 }
 
+// Clean up expired messages (runs periodically)
+function cleanupExpiredMessages() {
+    const now = new Date().toISOString();
+    db.prepare("DELETE FROM messages WHERE disappears_at IS NOT NULL AND disappears_at <= ?").run(now);
+}
+
+// Run cleanup every minute
+setInterval(cleanupExpiredMessages, 60 * 1000);
+
 app.post("/api/login", (req, res) => {
     const id = Number(req.body.userId);
     const user = users[id];
@@ -220,6 +246,17 @@ app.post("/api/messages", auth, (req, res) => {
     const method = ["none", "photo", "question", "either"].includes(req.body.unlock_method) ? req.body.unlock_method : "none";
     const question = String(req.body.question || "").trim();
     const answer = String(req.body.answer || "").trim();
+    
+    // Handle disappearing timer (in seconds)
+    let disappears_at = null;
+    let timer_duration = null;
+    const timerSeconds = Number(req.body.timer_duration);
+    if (timerSeconds && timerSeconds > 0) {
+        timer_duration = timerSeconds;
+        const now = new Date();
+        now.setSeconds(now.getSeconds() + timerSeconds);
+        disappears_at = now.toISOString();
+    }
 
     if (!body) return res.status(400).json({ error: "Message cannot be empty." });
     if ((method === "question" || method === "either") && (!question || !answer)) {
@@ -227,9 +264,9 @@ app.post("/api/messages", auth, (req, res) => {
     }
 
     const info = db.prepare(`
-    INSERT INTO messages(sender, recipient, body, unlock_method, question, answer_hash, unlocked)
-    VALUES(?,?,?,?,?,?,?)
-  `).run(sender, recipient, body, method, question || null, answer ? hash(answer) : null, method === "none" ? 1 : 0);
+    INSERT INTO messages(sender, recipient, body, unlock_method, question, answer_hash, unlocked, disappears_at, timer_duration)
+    VALUES(?,?,?,?,?,?,?,?,?)
+  `).run(sender, recipient, body, method, question || null, answer ? hash(answer) : null, method === "none" ? 1 : 0, disappears_at, timer_duration);
 
     io.emit("refresh");
     res.json({ id: info.lastInsertRowid });
@@ -271,6 +308,48 @@ app.post("/api/messages/:id/seen", auth, (req, res) => {
     if (!msg || msg.recipient !== me(req).id) return res.status(404).json({ error: "Message not found." });
 
     db.prepare("UPDATE messages SET seen=1 WHERE id=?").run(id);
+    io.emit("refresh");
+    res.json({ ok: true });
+});
+
+// Set or update a message's disappearing timer
+app.post("/api/messages/:id/set-timer", auth, (req, res) => {
+    const id = Number(req.params.id);
+    const msg = db.prepare("SELECT * FROM messages WHERE id=?").get(id);
+    if (!msg) return res.status(404).json({ error: "Message not found." });
+    
+    // Only sender can set timer on their message, or recipient can set timer when they receive it
+    const userId = me(req).id;
+    if (msg.sender !== userId && msg.recipient !== userId) {
+        return res.status(403).json({ error: "Not authorized." });
+    }
+
+    const timerSeconds = Number(req.body.timer_duration);
+    if (!timerSeconds || timerSeconds <= 0) {
+        return res.status(400).json({ error: "Timer duration must be a positive number in seconds." });
+    }
+
+    const now = new Date();
+    now.setSeconds(now.getSeconds() + timerSeconds);
+    const disappears_at = now.toISOString();
+
+    db.prepare("UPDATE messages SET disappears_at=?, timer_duration=? WHERE id=?").run(disappears_at, timerSeconds, id);
+    io.emit("refresh");
+    res.json({ ok: true, disappears_at, timer_duration: timerSeconds });
+});
+
+// Clear a message's disappearing timer
+app.post("/api/messages/:id/clear-timer", auth, (req, res) => {
+    const id = Number(req.params.id);
+    const msg = db.prepare("SELECT * FROM messages WHERE id=?").get(id);
+    if (!msg) return res.status(404).json({ error: "Message not found." });
+
+    const userId = me(req).id;
+    if (msg.sender !== userId && msg.recipient !== userId) {
+        return res.status(403).json({ error: "Not authorized." });
+    }
+
+    db.prepare("UPDATE messages SET disappears_at=NULL, timer_duration=NULL WHERE id=?").run(id);
     io.emit("refresh");
     res.json({ ok: true });
 });
